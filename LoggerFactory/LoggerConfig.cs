@@ -218,8 +218,7 @@ public class LoggerConfig : ILoggerConfig
     public LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
-        if (ns != null)
-            return ns.MinLogLevel > output_log_level ? ns.MinLogLevel : output_log_level;
+        if (ns != null) return ns.MinLogLevel;
         else return output_log_level;
     }
 
@@ -232,8 +231,7 @@ public class LoggerConfig : ILoggerConfig
     public LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
-        if (ns != null)
-            return ns.MaxLogLevel < output_log_level ? ns.MaxLogLevel : output_log_level;
+        if (ns != null) return ns.MaxLogLevel;
         else return output_log_level;
     }
 

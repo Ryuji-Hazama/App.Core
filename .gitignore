@@ -1,0 +1,8 @@
+# Log files
+*.log
+[Ll]og/
+[Ll]ogs/
+
+# bin and obj directories
+[Bb]in/
+[Oo]bj/

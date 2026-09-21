@@ -36,9 +36,8 @@ namespace App.Core.LoggerFactory
         private void Log(LogLevel level, object message, int caller_depth = 2, int caller_line_number = 0)
         {
             StackFrame? caller_frame = new StackTrace().GetFrame(caller_depth);
-            string logMessage = $"{DateTime.Now} [{level,-5}] {_source}.{caller_frame?.GetMethod()?.Name} - {message}";
 
-            LogToConsole(level, caller_frame, logMessage);
+            LogToConsole(level, caller_frame, caller_line_number, message);
             OutputToFile(level, caller_frame, caller_line_number, message);
         }
 
@@ -48,16 +47,22 @@ namespace App.Core.LoggerFactory
             Log(level, ex.ToString(), 3, caller_line_number);
         }
 
-        private void LogToConsole(LogLevel level, StackFrame? caller_frame, string logMessage)
+        private void LogToConsole(LogLevel level, StackFrame? caller_frame, int caller_line_number, object message)
         {
-            string target_namespace = $"{_source}.{caller_frame?.GetMethod()?.Name}";
+            string target_namespace = $"{_source}.{GetCallerMethodName(caller_frame)}";
             LogLevel console_min_log_level = Config.FindMinLogLevel(Config.ConsoleOutput.MinLogLevel, target_namespace);
             LogLevel console_max_log_level = Config.FindMaxLogLevel(Config.ConsoleOutput.MaxLogLevel, target_namespace);
 
             if (level >= console_min_log_level && level <= console_max_log_level)
             {
+                string logMessage = FormatLogMessage(Config.ConsoleOutput, level, caller_frame, caller_line_number, message);
                 Console.WriteLine(logMessage);
             }
+        }
+
+        private string GetCallerMethodName(StackFrame? caller_frame)
+        {
+            return caller_frame?.GetMethod()?.Name ?? "Unknown";
         }
 
         /*

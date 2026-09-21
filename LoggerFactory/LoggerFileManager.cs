@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 
 namespace App.Core.LoggerFactory
 {
@@ -11,8 +9,7 @@ namespace App.Core.LoggerFactory
             if (Config.FileOutputs == null || Config.FileOutputs.Count == 0)
                 return;
 
-            MethodBase? caller_method = caller_frame?.GetMethod();
-            string target_namespace = $"{_source}.{caller_method}";
+            string target_namespace = $"{_source}.{GetCallerMethodName(caller_frame)}";
             Containers.NameSpace? ns = Config.FindNameSpace(target_namespace);
 
             foreach (var fileOutput in Config.FileOutputs)
@@ -23,14 +20,14 @@ namespace App.Core.LoggerFactory
                 if (level >= file_min_log_level && level <= file_max_log_level)
                 {
                     string log_file_path = GetLogFilePath(fileOutput);
-                    string log_message = $"{DateTime.Now} [{level,-5}] {_source}.{caller_method?.Name}({caller_line_number}) - {message}";
+                    string log_message = FormatLogMessage(fileOutput, level, caller_frame, caller_line_number, message);
                     LogToFile(log_file_path, log_message);
                     RotateLogFile(log_file_path, fileOutput.MaxFileSize, fileOutput.Mode);
                 }
             }
         }
 
-        private string GetLogFilePath(Containers.FileOutput file_output)
+        private string GetLogFilePath(Containers.OutputConfig file_output)
         {
             LogFileMode logFileMode = file_output.Mode;
 

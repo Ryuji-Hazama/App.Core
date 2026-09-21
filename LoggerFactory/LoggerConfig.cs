@@ -1,3 +1,5 @@
+using App.Core.Consts;
+
 namespace App.Core.LoggerFactory;
 
 public enum OutputType
@@ -17,8 +19,8 @@ public class LoggerConfig : ILoggerConfig
 {
     #region Class Members
 
-    public Containers.ConsoleOutput ConsoleOutput { get; set; } = new Containers.ConsoleOutput();
-    public List<Containers.FileOutput> FileOutputs { get; set; } = new List<Containers.FileOutput>();
+    public Containers.OutputConfig ConsoleOutput { get; set; } = new Containers.OutputConfig();
+    public List<Containers.OutputConfig> FileOutputs { get; set; } = new List<Containers.OutputConfig>();
     private readonly List<Containers.NameSpace> _nameSpaces = new List<Containers.NameSpace>();
     private Json.JsonHelper Json_Helper;
 
@@ -59,6 +61,9 @@ public class LoggerConfig : ILoggerConfig
             {
                 ConsoleOutput.MinLogLevel = minLogLevel;
                 ConsoleOutput.MaxLogLevel = maxLogLevel;
+
+                ConsoleOutput.Format = output.Format ?? LoggerFactoryConsts.DEFAULT_CONSOLE_LOG_FORMAT;
+                ConsoleOutput.TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT;
             }
             else if (output_type == OutputType.File)
             {
@@ -72,14 +77,16 @@ public class LoggerConfig : ILoggerConfig
                 LogFileMode logFileMode = ObjectToLogFileMode(output.Mode);
                 long maxFileSize = ObjectToMaxFileSize(output.MaxFileSize);
 
-                FileOutputs.Add(new Containers.FileOutput
+                FileOutputs.Add(new Containers.OutputConfig
                 {
                     MinLogLevel = minLogLevel,
                     MaxLogLevel = maxLogLevel,
                     LogFileName = output.LogFileName,
                     LogFilePath = output.LogFilePath,
                     Mode = logFileMode,
-                    MaxFileSize = maxFileSize
+                    MaxFileSize = maxFileSize,
+                    Format = output.Format ?? LoggerFactoryConsts.DEFAULT_FILE_LOG_FORMAT,
+                    TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT
                 });
             }
             else
@@ -218,8 +225,7 @@ public class LoggerConfig : ILoggerConfig
     public LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
-        if (ns != null)
-            return ns.MinLogLevel > output_log_level ? ns.MinLogLevel : output_log_level;
+        if (ns != null) return ns.MinLogLevel;
         else return output_log_level;
     }
 
@@ -232,8 +238,7 @@ public class LoggerConfig : ILoggerConfig
     public LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
-        if (ns != null)
-            return ns.MaxLogLevel < output_log_level ? ns.MaxLogLevel : output_log_level;
+        if (ns != null) return ns.MaxLogLevel;
         else return output_log_level;
     }
 
@@ -273,8 +278,8 @@ public class LoggerConfig : ILoggerConfig
 
 public interface ILoggerConfig
 {
-    Containers.ConsoleOutput ConsoleOutput { get; set; }
-    List<Containers.FileOutput> FileOutputs { get; set; }
+    Containers.OutputConfig ConsoleOutput { get; set; }
+    List<Containers.OutputConfig> FileOutputs { get; set; }
     void LoadLoggerConfig(string? logger_config_path = null);
     LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null);
     LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null);

@@ -21,6 +21,7 @@ namespace App.Core.Components
     public class ComponentsLibrary : IComponentsLibrary
     {
         private readonly App.Config _config = App.ConfigManager.GetConfig();
+        private readonly ComponentsJson Components_Json = new ComponentsJson();
         private readonly Dictionary<string, object> _components = new();
 
         public ComponentsLibrary()
@@ -30,19 +31,7 @@ namespace App.Core.Components
             if (File.Exists(componentsListPath))
             {
                 string json = File.ReadAllText(componentsListPath);
-                ComponentsJson componentsJson = JsonSerializer.Deserialize<ComponentsJson>(json) ?? new ComponentsJson();
-
-                foreach (Component component in componentsJson.Components)
-                {
-                    try
-                    {
-                        _components[component.Name] = Invoke(component.Assembly, component.Context);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error loading component '{component.Name}': {ex.Message}");
-                    }
-                }
+                Components_Json = JsonSerializer.Deserialize<ComponentsJson>(json) ?? new ComponentsJson();
             }
             else
             {
@@ -50,7 +39,7 @@ namespace App.Core.Components
             }
         }
 
-        public object Invoke(string assemblyName, string context)
+        public object Invoke(string assemblyName, string context, object[]? parameters)
         {
             string assemblyPath = Path.Combine(_config.App.AssemblyPath, assemblyName);
 
@@ -85,7 +74,7 @@ namespace App.Core.Components
                 throw new TypeLoadException($"Type '{context}' not found in assembly '{assemblyName}'.");
             }
 
-            var instance = Activator.CreateInstance(type);
+            var instance = Activator.CreateInstance(type, parameters);
             if (instance == null)
             {
                 throw new InvalidOperationException($"Could not create an instance of type '{context}'.");
@@ -94,18 +83,24 @@ namespace App.Core.Components
             return instance;
         }
 
-        public T GetComponent<T>(string componentName)
+        public T GetComponent<T>(string componentName, object[]? parameters = null)
         {
             if (_components.TryGetValue(componentName, out var component))
             {
                 return (T)component;
+            }else
+            {
+                Component component_info = Components_Json.Components.FirstOrDefault(c => c.Name == componentName)
+                    ?? throw new KeyNotFoundException($"Component '{componentName}' not found.");
+                var new_component = Invoke(component_info.Assembly, component_info.Context, parameters);
+                _components[componentName] = new_component;
+                return (T)new_component;
             }
-            throw new KeyNotFoundException($"Component '{componentName}' not found.");
         }
     }
 
     public interface IComponentsLibrary
     {
-        T GetComponent<T>(string componentName);
+        T GetComponent<T>(string componentName, object[]? parameters = null);
     }
 }

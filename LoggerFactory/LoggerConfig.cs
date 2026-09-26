@@ -59,11 +59,13 @@ public class LoggerConfig : ILoggerConfig
 
             if (output_type == OutputType.Console)
             {
+                ConsoleOutput.IsConsole = true;
                 ConsoleOutput.MinLogLevel = minLogLevel;
                 ConsoleOutput.MaxLogLevel = maxLogLevel;
 
                 ConsoleOutput.Format = output.Format ?? LoggerFactoryConsts.DEFAULT_CONSOLE_LOG_FORMAT;
                 ConsoleOutput.TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT;
+                ConsoleOutput.ColorHighlight = output.ColorHighlight;
             }
             else if (output_type == OutputType.File)
             {
@@ -79,6 +81,7 @@ public class LoggerConfig : ILoggerConfig
 
                 FileOutputs.Add(new Containers.OutputConfig
                 {
+                    IsConsole = false,
                     MinLogLevel = minLogLevel,
                     MaxLogLevel = maxLogLevel,
                     LogFileName = output.LogFileName,

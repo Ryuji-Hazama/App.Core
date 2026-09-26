@@ -21,28 +21,19 @@ namespace App.Core.Components
     public class ComponentsLibrary : IComponentsLibrary
     {
         private readonly App.Config _config = App.ConfigManager.GetConfig();
+        private readonly ComponentsJson Components_Json = new ComponentsJson();
         private readonly Dictionary<string, object> _components = new();
 
         public ComponentsLibrary()
         {
+            AssemblyLoadContext.Default.Resolving += ResolveAssembly;
+
             string componentsListPath = _config.App.ComponentsList;
 
             if (File.Exists(componentsListPath))
             {
                 string json = File.ReadAllText(componentsListPath);
-                ComponentsJson componentsJson = JsonSerializer.Deserialize<ComponentsJson>(json) ?? new ComponentsJson();
-
-                foreach (Component component in componentsJson.Components)
-                {
-                    try
-                    {
-                        _components[component.Name] = Invoke(component.Assembly, component.Context);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error loading component '{component.Name}': {ex.Message}");
-                    }
-                }
+                Components_Json = JsonSerializer.Deserialize<ComponentsJson>(json) ?? new ComponentsJson();
             }
             else
             {
@@ -50,7 +41,14 @@ namespace App.Core.Components
             }
         }
 
-        public object Invoke(string assemblyName, string context)
+        private Assembly? ResolveAssembly(AssemblyLoadContext context, AssemblyName assemblyName)
+        {
+            string dependencyPath = Path.GetFullPath(
+                Path.Combine(_config.App.AssemblyPath, assemblyName.Name + ".dll"));
+            return File.Exists(dependencyPath) ? context.LoadFromAssemblyPath(dependencyPath) : null;
+        }
+
+        public object Invoke(string assemblyName, string context, object[]? parameters)
         {
             string assemblyPath = Path.Combine(_config.App.AssemblyPath, assemblyName);
 
@@ -59,33 +57,22 @@ namespace App.Core.Components
                 throw new FileNotFoundException($"Assembly file not found: {assemblyPath}");
             }
 
-            var loadContext = new AssemblyLoadContext("plugin-load-context", isCollectible: true);
-            loadContext.Resolving += (context, asmName) =>
-            {
-                var existing = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == asmName.Name);
-                if (existing != null)
-                {
-                    return existing;
-                }
-
-                var dependencyPath = Path.Combine(_config.App.AssemblyPath, asmName.Name + ".dll");
-                if (File.Exists(dependencyPath))
-                {
-                    return context.LoadFromAssemblyPath(dependencyPath);
-                }
-
-                return null;
-            };
-
-            var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
+            var assembly = AssemblyLoadContext.Default.Assemblies
+                .FirstOrDefault(existing => existing.GetName().Name == Path.GetFileNameWithoutExtension(assemblyName))
+                ?? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath));
             var type = assembly.GetType(context);
             if (type == null)
             {
                 throw new TypeLoadException($"Type '{context}' not found in assembly '{assemblyName}'.");
             }
 
-            var instance = Activator.CreateInstance(type);
+            // Allow binding to constructors with trailing optional parameters not covered by 'parameters'.
+            var instance = Activator.CreateInstance(
+                type,
+                BindingFlags.CreateInstance | BindingFlags.Public | BindingFlags.Instance | BindingFlags.OptionalParamBinding,
+                null,
+                parameters ?? Array.Empty<object>(),
+                null);
             if (instance == null)
             {
                 throw new InvalidOperationException($"Could not create an instance of type '{context}'.");
@@ -94,18 +81,24 @@ namespace App.Core.Components
             return instance;
         }
 
-        public T GetComponent<T>(string componentName)
+        public T GetComponent<T>(string componentName, object[]? parameters = null)
         {
             if (_components.TryGetValue(componentName, out var component))
             {
                 return (T)component;
+            }else
+            {
+                Component component_info = Components_Json.Components.FirstOrDefault(c => c.Name == componentName)
+                    ?? throw new KeyNotFoundException($"Component '{componentName}' not found.");
+                var new_component = Invoke(component_info.Assembly, component_info.Context, parameters);
+                _components[componentName] = new_component;
+                return (T)new_component;
             }
-            throw new KeyNotFoundException($"Component '{componentName}' not found.");
         }
     }
 
     public interface IComponentsLibrary
     {
-        T GetComponent<T>(string componentName);
+        T GetComponent<T>(string componentName, object[]? parameters = null);
     }
 }

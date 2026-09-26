@@ -32,7 +32,7 @@ public class ConfigurationFile
         // ${message} -> The log message content
         public string? TimestampFormat { get; set; }
         // Use standard .NET date and time format strings for the timestamp format.
-
+        public bool ColorHighlight { get; set; } = true;
     }
 
     public class NameSpace
@@ -45,6 +45,8 @@ public class ConfigurationFile
 
 public class OutputConfig
 {
+    public bool IsConsole { get; set; } = false;
+    public bool ColorHighlight { get; set; } = true;
     public string LogFileName { get; set; } = string.Empty;
     public string LogFilePath { get; set; } = string.Empty;
     public LogFileMode Mode { get; set; } = LogFileMode.Append;

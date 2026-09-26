@@ -26,6 +26,8 @@ namespace App.Core.Components
 
         public ComponentsLibrary()
         {
+            AssemblyLoadContext.Default.Resolving += ResolveAssembly;
+
             string componentsListPath = _config.App.ComponentsList;
 
             if (File.Exists(componentsListPath))
@@ -39,6 +41,13 @@ namespace App.Core.Components
             }
         }
 
+        private Assembly? ResolveAssembly(AssemblyLoadContext context, AssemblyName assemblyName)
+        {
+            string dependencyPath = Path.GetFullPath(
+                Path.Combine(_config.App.AssemblyPath, assemblyName.Name + ".dll"));
+            return File.Exists(dependencyPath) ? context.LoadFromAssemblyPath(dependencyPath) : null;
+        }
+
         public object Invoke(string assemblyName, string context, object[]? parameters)
         {
             string assemblyPath = Path.Combine(_config.App.AssemblyPath, assemblyName);
@@ -48,33 +57,22 @@ namespace App.Core.Components
                 throw new FileNotFoundException($"Assembly file not found: {assemblyPath}");
             }
 
-            var loadContext = new AssemblyLoadContext("plugin-load-context", isCollectible: true);
-            loadContext.Resolving += (context, asmName) =>
-            {
-                var existing = AppDomain.CurrentDomain.GetAssemblies()
-                    .FirstOrDefault(a => a.GetName().Name == asmName.Name);
-                if (existing != null)
-                {
-                    return existing;
-                }
-
-                var dependencyPath = Path.Combine(_config.App.AssemblyPath, asmName.Name + ".dll");
-                if (File.Exists(dependencyPath))
-                {
-                    return context.LoadFromAssemblyPath(dependencyPath);
-                }
-
-                return null;
-            };
-
-            var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
+            var assembly = AssemblyLoadContext.Default.Assemblies
+                .FirstOrDefault(existing => existing.GetName().Name == Path.GetFileNameWithoutExtension(assemblyName))
+                ?? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(assemblyPath));
             var type = assembly.GetType(context);
             if (type == null)
             {
                 throw new TypeLoadException($"Type '{context}' not found in assembly '{assemblyName}'.");
             }
 
-            var instance = Activator.CreateInstance(type, parameters);
+            // Allow binding to constructors with trailing optional parameters not covered by 'parameters'.
+            var instance = Activator.CreateInstance(
+                type,
+                BindingFlags.CreateInstance | BindingFlags.Public | BindingFlags.Instance | BindingFlags.OptionalParamBinding,
+                null,
+                parameters ?? Array.Empty<object>(),
+                null);
             if (instance == null)
             {
                 throw new InvalidOperationException($"Could not create an instance of type '{context}'.");

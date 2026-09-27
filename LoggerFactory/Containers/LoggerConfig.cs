@@ -16,10 +16,11 @@ public class ConfigurationFile
         public object Mode { get; set; } = LogFileMode.Append.ToString();
         public object MinLogLevel { get; set; } = LogLevel.TRACE.ToString();
         public object MaxLogLevel { get; set; } = LogLevel.FATAL.ToString();
-        public object MaxFileSize { get; set; } = 0;
+        public object MaxFileSize { get; set; } = -1;
 
         // If the Type is int, it represents the maximum file size in bytes.
         // If the Type is string, it can be a human-readable format like "10MB", "1GB", etc.
+        // A value of -1 indicates no limit on the file size.
 
         /* public int FileMaxCount { get; set; } = 0; */
         public string? Format { get; set; }

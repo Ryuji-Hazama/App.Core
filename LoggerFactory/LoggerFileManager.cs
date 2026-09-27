@@ -70,7 +70,7 @@ namespace App.Core.LoggerFactory
         private void RotateLogFile(string log_file_path, long max_file_size, LogFileMode log_file_mode)
         {
             long file_size = new FileInfo(log_file_path).Length;
-            if (file_size > max_file_size)
+            if (max_file_size > 0 && file_size > max_file_size)   // Zero or negative value indicates no limit on the file size.
             {
                 if (log_file_mode == LogFileMode.Overwrite)
                 {

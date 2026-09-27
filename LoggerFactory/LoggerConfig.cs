@@ -62,7 +62,6 @@ public class LoggerConfig : ILoggerConfig
                 ConsoleOutput.IsConsole = true;
                 ConsoleOutput.MinLogLevel = minLogLevel;
                 ConsoleOutput.MaxLogLevel = maxLogLevel;
-
                 ConsoleOutput.Format = output.Format ?? LoggerFactoryConsts.DEFAULT_CONSOLE_LOG_FORMAT;
                 ConsoleOutput.TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT;
                 ConsoleOutput.ColorHighlight = output.ColorHighlight;
@@ -78,6 +77,9 @@ public class LoggerConfig : ILoggerConfig
                 // Convert values to appropriate types
                 LogFileMode logFileMode = ObjectToLogFileMode(output.Mode);
                 long maxFileSize = ObjectToMaxFileSize(output.MaxFileSize);
+
+                if (maxFileSize > 0 && maxFileSize < 100)   // Extremely small file size might cause a problem with log rotation.
+                    throw new InvalidOperationException("Maximum file size must be at least 100 bytes if specified.");
 
                 FileOutputs.Add(new Containers.OutputConfig
                 {

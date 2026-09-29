@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 namespace App.Core.Json;
 
@@ -85,9 +87,15 @@ public class JsonHelper : IJsonHelper
     /// <param name="content">The object to serialize.</param>
     /// <param name="save">Indicates whether to save the serialized JSON content to the file. Defaults to true.</param>
     /// <returns>The serialized JSON content as a string.</returns>
-    public string SerializeJsonContent(object content, bool save = true)
+    public string SerializeJsonContent(object content, bool save = true, bool ensure_ascii = false)
     {
-        Json_Content = JsonSerializer.Serialize(content);
+        JsonSerializerOptions options = new JsonSerializerOptions();
+        if (!ensure_ascii)
+        {
+            options.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+        }
+        options.WriteIndented = true;
+        Json_Content = JsonSerializer.Serialize(content, options);
         if (save)
             SaveJsonContent(Json_Content);
         return Json_Content;

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Encodings.Web;
-using System.Text.Unicode;
 
 namespace App.Core.Json;
 
@@ -92,7 +91,7 @@ public class JsonHelper : IJsonHelper
         JsonSerializerOptions options = new JsonSerializerOptions();
         if (!ensure_ascii)
         {
-            options.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+            options.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
         }
         options.WriteIndented = true;
         Json_Content = JsonSerializer.Serialize(content, options);
@@ -139,5 +138,7 @@ public interface IJsonHelper
     string? Json_Content { get; set; }
     string LoadJsonContent();
     T DeserializeJsonContent<T>(string? json_content = null);
+    void SaveJsonContent(string json_content);
+    string SerializeJsonContent(object content, bool save = true, bool ensure_ascii = false);
     object? UnwrapJsonValue(object? value);
 }

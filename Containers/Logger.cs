@@ -1,6 +1,7 @@
 using App.Core.Consts;
+using App.Core.LoggerFactory;
 
-namespace App.Core.LoggerFactory.Containers;
+namespace App.Core.Containers;
 
 public class ConfigurationFile
 {

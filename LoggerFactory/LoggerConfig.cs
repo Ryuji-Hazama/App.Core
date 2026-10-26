@@ -1,6 +1,9 @@
 using App.Core.Consts;
+using App.Core.Containers;
 
 namespace App.Core.LoggerFactory;
+
+#region Enums
 
 public enum OutputType
 {
@@ -15,16 +18,22 @@ public enum LogFileMode
     Daily
 }
 
+#endregion Enums
+
+#region LoggerConfig Class
+
 public class LoggerConfig : ILoggerConfig
 {
     #region Class Members
 
-    public Containers.OutputConfig ConsoleOutput { get; set; } = new Containers.OutputConfig();
-    public List<Containers.OutputConfig> FileOutputs { get; set; } = new List<Containers.OutputConfig>();
-    private readonly List<Containers.NameSpace> _nameSpaces = new List<Containers.NameSpace>();
+    public OutputConfig ConsoleOutput { get; set; } = new OutputConfig();
+    public List<OutputConfig> FileOutputs { get; set; } = new List<OutputConfig>();
+    private readonly List<NameSpace> _nameSpaces = new List<NameSpace>();
     private Json.JsonHelper Json_Helper;
 
-    #endregion
+    #endregion Class Members
+
+    #region Constructor
 
     public LoggerConfig()
     {
@@ -32,6 +41,8 @@ public class LoggerConfig : ILoggerConfig
         if (Json_Helper == null)
             Json_Helper = new Json.JsonHelper();
     }
+
+    #endregion Constructor
 
     #region Private Methods
 
@@ -91,7 +102,7 @@ public class LoggerConfig : ILoggerConfig
                     if (maxFileSize > 0 && maxFileSize < 100)   // Extremely small file size might cause a problem with log rotation.
                         throw new InvalidOperationException("Maximum file size must be at least 100 bytes if specified.");
 
-                    FileOutputs.Add(new Containers.OutputConfig
+                    FileOutputs.Add(new OutputConfig
                     {
                         IsConsole = false,
                         MinLogLevel = minLogLevel,
@@ -203,7 +214,7 @@ public class LoggerConfig : ILoggerConfig
         }
     }
 
-    private void LoadNameSpaceSettings(List<Containers.ConfigurationFile.NameSpace> nameSpaces)
+    private void LoadNameSpaceSettings(List<ConfigurationFile.NameSpace> nameSpaces)
     {
         if (nameSpaces != null && nameSpaces.Count > 0)
         {
@@ -211,7 +222,7 @@ public class LoggerConfig : ILoggerConfig
             {
                 try
                 {
-                    Containers.NameSpace ns = new Containers.NameSpace
+                    NameSpace ns = new NameSpace
                     {
                         Name = nameSpace.Name,
                         MinLogLevel = ObjectToLogLevel(nameSpace.MinLogLevel),
@@ -228,9 +239,9 @@ public class LoggerConfig : ILoggerConfig
         }
     }
 
-    #endregion
+    #endregion Helper Methods
 
-    #endregion
+    #endregion Private Methods
 
     #region Public Methods
 
@@ -256,7 +267,7 @@ public class LoggerConfig : ILoggerConfig
     /// <param name="output">The output configuration for which to determine the minimum log level.</param>
     /// <param name="target_namespace">The target namespace for which to determine the minimum log level.</param>
     /// <returns>The effective minimum log level for the specified output and target namespace.</returns>
-    public LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
+    public LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
         if (ns != null) return ns.MinLogLevel;
@@ -269,14 +280,14 @@ public class LoggerConfig : ILoggerConfig
     /// <param name="output_log_level">The output log level for which to determine the maximum log level.</param>
     /// <param name="target_namespace">The target namespace for which to determine the maximum log level.</param>
     /// <returns>The effective maximum log level for the specified output and target namespace.</returns>
-    public LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null)
+    public LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, NameSpace? ns = null)
     {
         ns ??= FindNameSpace(target_namespace);
         if (ns != null) return ns.MaxLogLevel;
         else return output_log_level;
     }
 
-    public Containers.NameSpace? FindNameSpace(string target_namespace)
+    public NameSpace? FindNameSpace(string target_namespace)
     {
         foreach (var nameSpace in _nameSpaces)
             if (target_namespace.StartsWith(nameSpace.Name))
@@ -307,16 +318,22 @@ public class LoggerConfig : ILoggerConfig
         }
     }
 
-    #endregion
+    #endregion Public Methods
 }
+
+#endregion LoggerConfig Class
+
+#region ILoggerConfig Interface
 
 public interface ILoggerConfig
 {
-    Containers.OutputConfig ConsoleOutput { get; set; }
-    List<Containers.OutputConfig> FileOutputs { get; set; }
+    OutputConfig ConsoleOutput { get; set; }
+    List<OutputConfig> FileOutputs { get; set; }
     void LoadLoggerConfig(string? logger_config_path = null);
-    LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null);
-    LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, Containers.NameSpace? ns = null);
-    Containers.NameSpace? FindNameSpace(string target_namespace);
+    LogLevel FindMinLogLevel(LogLevel output_log_level, string target_namespace, NameSpace? ns = null);
+    LogLevel FindMaxLogLevel(LogLevel output_log_level, string target_namespace, NameSpace? ns = null);
+    NameSpace? FindNameSpace(string target_namespace);
     LogLevel ObjectToLogLevel(object log_level);
 }
+
+#endregion ILoggerConfig Interface

@@ -3,15 +3,32 @@ using System.Text.Encodings.Web;
 
 namespace App.Core.Json;
 
+#region JsonHelper Class
+
+/// <summary>
+/// Provides helper methods for working with JSON content, including loading, saving, serializing, and deserializing JSON data.
+/// </summary>
 public class JsonHelper : IJsonHelper
 {
+    #region Class Members
+
     public string? File_Path { get; set; }
     public string? Json_Content { get; set; }
 
+    #endregion Class Members
+
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the JsonHelper class with an optional file path.
+    /// </summary>
+    /// <param name="file_path">The file path of the JSON file to work with.</param>
     public JsonHelper(string? file_path = null)
     {
         File_Path = file_path;
     }
+
+    #endregion Constructors
 
     #region Public Methods
 
@@ -132,6 +149,13 @@ public class JsonHelper : IJsonHelper
     #endregion
 }
 
+#endregion JsonHelper Class
+
+#region IJsonHelper Interface
+
+/// <summary>
+/// Interface for a JSON helper that supports loading, saving, serializing, and deserializing JSON content.
+/// </summary>
 public interface IJsonHelper
 {
     string? File_Path { get; set; }
@@ -142,3 +166,5 @@ public interface IJsonHelper
     string SerializeJsonContent(object content, bool save = true, bool ensure_ascii = false);
     object? UnwrapJsonValue(object? value);
 }
+
+#endregion IJsonHelper Interface

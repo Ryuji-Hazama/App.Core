@@ -6,3 +6,6 @@
 # bin and obj directories
 [Bb]in/
 [Oo]bj/
+
+# Release notes
+releases/

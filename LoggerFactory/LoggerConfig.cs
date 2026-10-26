@@ -37,66 +37,81 @@ public class LoggerConfig : ILoggerConfig
 
     private Containers.ConfigurationFile LoadConfigFromJson(string log_config_json)
     {
-        if (string.IsNullOrWhiteSpace(log_config_json) || !File.Exists(log_config_json))
-            return new Containers.ConfigurationFile(); // Return an empty configuration if the file path is invalid or the file does not exist
+        try
+        {
+            if (string.IsNullOrWhiteSpace(log_config_json) || !File.Exists(log_config_json))
+                throw new InvalidOperationException($"Logger configuration file not found: {log_config_json}");
 
-        Json_Helper = new Json.JsonHelper(log_config_json);
-        var logger_config = Json_Helper.DeserializeJsonContent<Containers.ConfigurationFile>();
+            Json_Helper = new Json.JsonHelper(log_config_json);
+            var logger_config = Json_Helper.DeserializeJsonContent<Containers.ConfigurationFile>();
 
-        if (logger_config == null)
-            throw new InvalidOperationException($"Failed to deserialize logger configuration from file: {log_config_json}");
+            if (logger_config == null)
+                throw new InvalidOperationException($"Failed to deserialize logger configuration from file: {log_config_json}");
 
-        return logger_config;
+            return logger_config;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{LoggerFactoryConsts.COLOR_ERROR}Error loading logger configuration from JSON: {ex.Message}{LoggerFactoryConsts.COLOR_RESET}");
+            return new Containers.ConfigurationFile(); // Return an empty configuration in case of error
+        }
     }
 
     private void LoadOutputSettings(List<Containers.ConfigurationFile.Output> outputs)
     {
         foreach (var output in outputs)
         {
-            OutputType output_type = ObjectToOutputType(output.Type);
-            LogLevel minLogLevel = ObjectToLogLevel(output.MinLogLevel);
-            LogLevel maxLogLevel = ObjectToLogLevel(output.MaxLogLevel);
-
-            if (output_type == OutputType.Console)
+            try
             {
-                ConsoleOutput.IsConsole = true;
-                ConsoleOutput.MinLogLevel = minLogLevel;
-                ConsoleOutput.MaxLogLevel = maxLogLevel;
-                ConsoleOutput.Format = output.Format ?? LoggerFactoryConsts.DEFAULT_CONSOLE_LOG_FORMAT;
-                ConsoleOutput.TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT;
-                ConsoleOutput.ColorHighlight = output.ColorHighlight;
-            }
-            else if (output_type == OutputType.File)
-            {
-                if (string.IsNullOrWhiteSpace(output.LogFileName) || string.IsNullOrWhiteSpace(output.LogFilePath))
-                    throw new InvalidOperationException("Log file name and path must be specified for file outputs.");
+                OutputType output_type = ObjectToOutputType(output.Type);
+                LogLevel minLogLevel = ObjectToLogLevel(output.MinLogLevel);
+                LogLevel maxLogLevel = ObjectToLogLevel(output.MaxLogLevel);
 
-                if (!Directory.Exists(output.LogFilePath))
-                    Directory.CreateDirectory(output.LogFilePath);
-
-                // Convert values to appropriate types
-                LogFileMode logFileMode = ObjectToLogFileMode(output.Mode);
-                long maxFileSize = ObjectToMaxFileSize(output.MaxFileSize);
-
-                if (maxFileSize > 0 && maxFileSize < 100)   // Extremely small file size might cause a problem with log rotation.
-                    throw new InvalidOperationException("Maximum file size must be at least 100 bytes if specified.");
-
-                FileOutputs.Add(new Containers.OutputConfig
+                if (output_type == OutputType.Console)
                 {
-                    IsConsole = false,
-                    MinLogLevel = minLogLevel,
-                    MaxLogLevel = maxLogLevel,
-                    LogFileName = output.LogFileName,
-                    LogFilePath = output.LogFilePath,
-                    Mode = logFileMode,
-                    MaxFileSize = maxFileSize,
-                    Format = output.Format ?? LoggerFactoryConsts.DEFAULT_FILE_LOG_FORMAT,
-                    TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT
-                });
+                    ConsoleOutput.IsConsole = true;
+                    ConsoleOutput.MinLogLevel = minLogLevel;
+                    ConsoleOutput.MaxLogLevel = maxLogLevel;
+                    ConsoleOutput.Format = output.Format ?? LoggerFactoryConsts.DEFAULT_CONSOLE_LOG_FORMAT;
+                    ConsoleOutput.TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT;
+                    ConsoleOutput.ColorHighlight = output.ColorHighlight;
+                }
+                else if (output_type == OutputType.File)
+                {
+                    if (string.IsNullOrWhiteSpace(output.LogFileName) || string.IsNullOrWhiteSpace(output.LogFilePath))
+                        throw new InvalidOperationException("Log file name and path must be specified for file outputs.");
+
+                    if (!Directory.Exists(output.LogFilePath))
+                        Directory.CreateDirectory(output.LogFilePath);
+
+                    // Convert values to appropriate types
+                    LogFileMode logFileMode = ObjectToLogFileMode(output.Mode);
+                    long maxFileSize = ObjectToMaxFileSize(output.MaxFileSize);
+
+                    if (maxFileSize > 0 && maxFileSize < 100)   // Extremely small file size might cause a problem with log rotation.
+                        throw new InvalidOperationException("Maximum file size must be at least 100 bytes if specified.");
+
+                    FileOutputs.Add(new Containers.OutputConfig
+                    {
+                        IsConsole = false,
+                        MinLogLevel = minLogLevel,
+                        MaxLogLevel = maxLogLevel,
+                        LogFileName = output.LogFileName,
+                        LogFilePath = output.LogFilePath,
+                        Mode = logFileMode,
+                        MaxFileSize = maxFileSize,
+                        Format = output.Format ?? LoggerFactoryConsts.DEFAULT_FILE_LOG_FORMAT,
+                        TimestampFormat = output.TimestampFormat ?? LoggerFactoryConsts.DEFAULT_DATETIME_FORMAT
+                    });
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unsupported output type: {output.Type}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Unsupported output type: {output.Type}");
+                Console.WriteLine($"{LoggerFactoryConsts.COLOR_ERROR}Error configuring logger output: {ex.Message}{LoggerFactoryConsts.COLOR_RESET}");
             }
         }
     }
@@ -194,14 +209,21 @@ public class LoggerConfig : ILoggerConfig
         {
             foreach (var nameSpace in nameSpaces)
             {
-                Containers.NameSpace ns = new Containers.NameSpace
+                try
                 {
-                    Name = nameSpace.Name,
-                    MinLogLevel = ObjectToLogLevel(nameSpace.MinLogLevel),
-                    MaxLogLevel = ObjectToLogLevel(nameSpace.MaxLogLevel)
-                };
+                    Containers.NameSpace ns = new Containers.NameSpace
+                    {
+                        Name = nameSpace.Name,
+                        MinLogLevel = ObjectToLogLevel(nameSpace.MinLogLevel),
+                        MaxLogLevel = ObjectToLogLevel(nameSpace.MaxLogLevel)
+                    };
 
-                _nameSpaces.Add(ns);
+                    _nameSpaces.Add(ns);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"{LoggerFactoryConsts.COLOR_ERROR}Error loading namespace settings: {ex.Message}{LoggerFactoryConsts.COLOR_RESET}");
+                }
             }
         }
     }
@@ -214,11 +236,18 @@ public class LoggerConfig : ILoggerConfig
 
     public void LoadLoggerConfig(string? logConfigPath = null)
     {
-        App.Config config = App.ConfigManager.GetConfig();
-        string log_config_json = logConfigPath ?? config.Logger.LogConfig ?? string.Empty;
-        Containers.ConfigurationFile logger_config = LoadConfigFromJson(log_config_json);
-        LoadOutputSettings(logger_config.Outputs);
-        LoadNameSpaceSettings(logger_config.NameSpaces);
+        try
+        {
+            App.Config config = App.ConfigManager.GetConfig();
+            string log_config_json = logConfigPath ?? config.Logger.LogConfig ?? string.Empty;
+            Containers.ConfigurationFile logger_config = LoadConfigFromJson(log_config_json);
+            LoadOutputSettings(logger_config.Outputs);
+            LoadNameSpaceSettings(logger_config.NameSpaces);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"{LoggerFactoryConsts.COLOR_ERROR}Error loading logger configuration: {ex.Message}{LoggerFactoryConsts.COLOR_RESET}");
+        }
     }
 
     /// <summary>

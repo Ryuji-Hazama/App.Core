@@ -19,10 +19,17 @@ namespace App.Core.LoggerFactory
 
                 if (level >= file_min_log_level && level <= file_max_log_level)
                 {
-                    string log_file_path = GetLogFilePath(fileOutput);
-                    string log_message = FormatLogMessage(fileOutput, level, caller_frame, caller_line_number, message);
-                    LogToFile(log_file_path, log_message);
-                    RotateLogFile(log_file_path, fileOutput.MaxFileSize, fileOutput.Mode);
+                    try
+                    {
+                        string log_file_path = GetLogFilePath(fileOutput);
+                        string log_message = FormatLogMessage(fileOutput, level, caller_frame, caller_line_number, message);
+                        LogToFile(log_file_path, log_message);
+                        RotateLogFile(log_file_path, fileOutput.MaxFileSize, fileOutput.Mode);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error logging to file: {ex.Message}");
+                    }
                 }
             }
         }
@@ -46,18 +53,10 @@ namespace App.Core.LoggerFactory
 
         private void LogToFile(string log_file_path, string message)
         {
-            try
+            // Append the log message to the specified log file
+            using (StreamWriter writer = new StreamWriter(new FileStream(log_file_path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)))
             {
-                // Append the log message to the specified log file
-                using (StreamWriter writer = new StreamWriter(new FileStream(log_file_path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)))
-                {
-                    writer.WriteLine(message);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle any exceptions that may occur during file writing
-                Console.WriteLine($"Error writing to log file: {ex.Message}");
+                writer.WriteLine(message);
             }
         }
 

@@ -1,3 +1,4 @@
+using App.Core.Containers;
 using System.Text.Json;
 
 /*
@@ -6,23 +7,6 @@ using System.Text.Json;
 
 namespace App.Core.App
 {
-    public class AppConfig
-    {
-        public string AssemblyPath { get; set; } = Path.Combine(AppContext.BaseDirectory, "AppData", "bin");
-        public string ComponentsList { get; set; } = Path.Combine(AppContext.BaseDirectory, "AppData", "config", "components.json");
-    }
-
-    public class LoggerConfig
-    {
-        public string? LogConfig { get; set; }
-    }
-
-    public class Config
-    {
-        public AppConfig App { get; set; } = new AppConfig();
-        public LoggerConfig Logger { get; set; } = new LoggerConfig();
-    }
-
     public static class ConfigManager
     {
         private static Config? _config = null;
@@ -45,7 +29,7 @@ namespace App.Core.App
         /// <returns>The configuration object.</returns>
         public static Config GetConfig()
         {
-            if (_config == null)
+            if (_config is null)
             {
                 var configFilePath = Path.Combine(AppContext.BaseDirectory, "App.json");
                 if (File.Exists(configFilePath))

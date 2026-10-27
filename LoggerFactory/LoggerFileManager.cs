@@ -9,7 +9,7 @@ public partial class Logger : ILoggerFileManager
 {
     private void OutputToFile(LogLevel level, StackFrame? caller_frame, int caller_line_number, object message)
     {
-        if (Config.FileOutputs == null || Config.FileOutputs.Count == 0)
+        if (Config.FileOutputs is null || Config.FileOutputs.Count == 0)
             return;
 
         string target_namespace = $"{Source}.{GetCallerMethodName(caller_frame)}";

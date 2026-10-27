@@ -38,7 +38,7 @@ public class LoggerConfig : ILoggerConfig
     public LoggerConfig()
     {
         LoadLoggerConfig();
-        if (Json_Helper == null)
+        if (Json_Helper is null)
             Json_Helper = new Json.JsonHelper();
     }
 
@@ -46,7 +46,7 @@ public class LoggerConfig : ILoggerConfig
 
     #region Private Methods
 
-    private Containers.ConfigurationFile LoadConfigFromJson(string log_config_json)
+    private ConfigurationFile LoadConfigFromJson(string log_config_json)
     {
         try
         {
@@ -54,9 +54,9 @@ public class LoggerConfig : ILoggerConfig
                 throw new InvalidOperationException($"Logger configuration file not found: {log_config_json}");
 
             Json_Helper = new Json.JsonHelper(log_config_json);
-            var logger_config = Json_Helper.DeserializeJsonContent<Containers.ConfigurationFile>();
+            var logger_config = Json_Helper.DeserializeJsonContent<ConfigurationFile>();
 
-            if (logger_config == null)
+            if (logger_config is null)
                 throw new InvalidOperationException($"Failed to deserialize logger configuration from file: {log_config_json}");
 
             return logger_config;
@@ -64,11 +64,11 @@ public class LoggerConfig : ILoggerConfig
         catch (Exception ex)
         {
             Console.WriteLine($"{LoggerFactoryConsts.COLOR_ERROR}Error loading logger configuration from JSON: {ex.Message}{LoggerFactoryConsts.COLOR_RESET}");
-            return new Containers.ConfigurationFile(); // Return an empty configuration in case of error
+            return new ConfigurationFile(); // Return an empty configuration in case of error
         }
     }
 
-    private void LoadOutputSettings(List<Containers.ConfigurationFile.Output> outputs)
+    private void LoadOutputSettings(List<ConfigurationFile.Output> outputs)
     {
         foreach (var output in outputs)
         {
@@ -249,9 +249,9 @@ public class LoggerConfig : ILoggerConfig
     {
         try
         {
-            App.Config config = App.ConfigManager.GetConfig();
+            Config config = App.ConfigManager.GetConfig();
             string log_config_json = logConfigPath ?? config.Logger.LogConfig ?? string.Empty;
-            Containers.ConfigurationFile logger_config = LoadConfigFromJson(log_config_json);
+            ConfigurationFile logger_config = LoadConfigFromJson(log_config_json);
             LoadOutputSettings(logger_config.Outputs);
             LoadNameSpaceSettings(logger_config.NameSpaces);
         }

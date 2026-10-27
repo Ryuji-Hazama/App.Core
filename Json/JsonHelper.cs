@@ -81,7 +81,7 @@ public class JsonHelper : IJsonHelper
     /// <exception cref="ArgumentException"></exception>
     public void SaveJsonContent(string? json_content = null)
     {
-        if (json_content == null)
+        if (json_content is null)
         {
             if (string.IsNullOrWhiteSpace(Json_Content))
                 LoadJsonContent();
